@@ -9,8 +9,15 @@
       text-align: center;
     }
 
+    .image-container {
+      position: relative;
+      display: inline-block;
+    }
+
     img {
       display: block;
+      position: relative;
+      z-index: -2;
       /* make it a block element */
       margin: 20px auto;
       /* auto left/right margins to center */
@@ -20,6 +27,31 @@
       height: auto;
       border: 2px solid #ccc;
       object-fit: contain;
+    }
+
+    #grid-overlay {
+      position: absolute;
+      /* ensures it can overlay */
+      top: 57vh;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      /* center it */
+
+      display: grid;
+      grid-template-columns: repeat(27, 1fr);
+      grid-template-rows: repeat(12, 1fr);
+
+      width: 90%;
+      /* pick a base width */
+      aspect-ratio: 27 / 12;
+      /* ensures squares */
+      z-index: -1;
+      pointer-events: none;
+    }
+
+
+    #grid-overlay div {
+      border: 1px solid rgba(168, 7, 7, 0.575);
     }
 
 
@@ -51,45 +83,62 @@
 
 <body>
 
-  <h5  id="miniTitle" style="margin: 0%;">Gesture Timer, upload a folder with refrence pictures (if you don't have any CubeBrush has some free packs) (No data is stored and will disapear after the site is reloaded)</h5>
+  <h5 id="miniTitle" style="margin: 0%;">Gesture Timer, upload a folder with refrence pictures (if you don't have any,
+    CubeBrush has some free packs)</h5>
 
   <!-- Progress Bar -->
   <div id="progress-container">
     <div id="progress-bar"></div>
   </div>
-  
-  
+
+
   <!-- Folder Picker (hidden) -->
   <input type="file" id="dirPicker" webkitdirectory hidden>
-  
+
   <!-- Buttons -->
-   <div id="allButtons">
-  <button onclick="startSlideshow()" disabled id="startBtn">Start</button>
-  <button onclick="pauseSlideshow()" disabled id="pauseBtn">Pause</button>
-  <button onclick="endSlideshow()" disabled id="endBtn">End</button>
-  <button onclick="skip()" disabled id="skipBtn">Skip</button>
-  <div id="CFolder">
-    <button onclick="document.getElementById('dirPicker').click()">Choose Folder</button>
-    <button onclick="nextTime()" id="timeBtn">Duration: 30s</button>
-    <button onclick="bgcolor()" id="bgBtn">Change BG Color</button>
-  </div></div>
-  
+  <div id="allButtons">
+    <button onclick="startSlideshow()" disabled id="startBtn">Start</button>
+    <button onclick="pauseSlideshow()" disabled id="pauseBtn">Pause</button>
+    <button onclick="endSlideshow()" disabled id="endBtn">End</button>
+    <button onclick="skip()" disabled id="skipBtn">Skip</button>
+    <div id="CFolder">
+      <button onclick="document.getElementById('dirPicker').click()">Choose Folder</button>
+      <button onclick="nextTime()" id="timeBtn">Duration: 30s</button>
+      <button onclick="bgcolor()" id="bgBtn">Change BG Color</button>
+      <button onclick="swapRepeats()" id="repeatsBtn">Repeats: ON</button>
+      <button onclick="swapGrid()" id="gridBtn">Grid: OFF</button>
+      <br>
+      <h3 id="finishedText"></h3>
+    </div>
+  </div>
+
   <!-- Image -->
   <div>
     <img id="image" src="" alt="Random Image" style="display:none;" />
+    <div id="grid-overlay"></div>
   </div>
   <br>
-  
+
   <script>
+
+    const grid = document.getElementById("grid-overlay");
+    for (let i = 0; i < 324; i++) {  // 27 columns x 12 rows
+      const cell = document.createElement("div");
+      grid.appendChild(cell);
+    }
+    grid.style.opacity = 0;
+
     let slideshowRunning = false;
     let progressStartTime = null;
     let progressTimeout = null;
     let totalTime = 30000;
     let remainingTime = totalTime; // in ms
-    
+
     let color = true;
-    
-    
+    let currentIndex = 0;
+    let repeats = true;
+    let visGrid = false;
+
     let images = [];
     let intervalId = null;
     const imageElement = document.getElementById("image");
@@ -102,6 +151,10 @@
     const skipBtn = document.getElementById("skipBtn");
     const bgBtn = document.getElementById("bgBtn");
     const miniTitle = document.getElementById("miniTitle");
+    const finishedText = document.getElementById("finishedText");
+    const repeatsBtn = document.getElementById("repeatsBtn");
+    const gridBtn = document.getElementById("gridBtn");
+    const gridOverlay = document.getElementById("grid-overlay");
 
     dirPicker.addEventListener("change", (e) => {
       const files = Array.from(e.target.files).filter(file => file.type.startsWith("image/"));
@@ -111,32 +164,75 @@
       }
 
       images = files;
+      shuffleArray(images);
       startBtn.disabled = false;
       pauseBtn.disabled = true;
 
     });
 
-    function showRandomImage() {
-      if (images.length === 0) return;
-      const randomIndex = Math.floor(Math.random() * images.length);
-      const imageFile = images[randomIndex];
-      imageElement.src = URL.createObjectURL(imageFile);
-      resetProgressBar();
+    function swapRepeats() {
+      if (repeats) {
+        repeatsBtn.textContent = "Repeat: OFF";
+      } else {
+        repeatsBtn.textContent = "Repeat: ON";
+      }
+      repeats = !repeats;
+    }
+
+    function swapGrid() {
+      if (visGrid) {
+        gridBtn.textContent = "Grid: OFF";
+      } else {
+        gridBtn.textContent = "Grid: ON";
+      }
+      visGrid = !visGrid;
+    }
+
+    function shuffleArray(array) {
+      for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]]; // swap
+      }
+    }
+
+
+    function showNextImage() {
+      if (images.length === 0) {
+        return;
+      }
+      if (currentIndex != images.length) {
+        const imageFile = images[currentIndex];
+        currentIndex++;
+        imageElement.src = URL.createObjectURL(imageFile);
+        resetProgressBar();
+      } else if (repeats) {
+        currentIndex = 0;
+        shuffleArray(images);
+        showNextImage();
+      } else {
+        endSlideshow();
+        currentIndex = 0;
+        shuffleArray(images);
+        finishedText.textContent = "Ran Out of New Images";
+      }
     }
 
     function startSlideshow() {
+      if (!imageElement.src || imageElement.src === window.location.href && !slideshowRunning) {
+        imageElement.style.display = "block";
+        showNextImage(); // show only if no image yet
+      }
       if (!slideshowRunning && images.length > 0) {
-        if (!imageElement.src || imageElement.src === window.location.href) {
-          imageElement.style.display = "block";
-          showRandomImage(); // show only if no image yet
+        if (visGrid) {
+          grid.style.opacity = 1;
         }
-
 
         slideshowRunning = true;
         startBtn.disabled = true;
         pauseBtn.disabled = false;
         endBtn.disabled = false;
         skipBtn.disabled = false;
+        finishedText.textContent = "";
 
         CFolder.disabled = true;
         CFolder.style.display = "none";
@@ -173,7 +269,7 @@
     function showAndScheduleNextImage() {
       if (!slideshowRunning) return;
 
-      showRandomImage();
+      showNextImage();
       remainingTime = totalTime;
       startProgressBar(remainingTime);
       progressStartTime = Date.now();
@@ -200,6 +296,7 @@
       progressBar.style.width = "100%";
       skipBtn.disabled = true;
       imageElement.src = window.location.href
+      grid.style.opacity = 0;
     }
 
     function startProgressBar(duration) {
@@ -222,7 +319,7 @@
       progressBar.style.width = currentWidth;
     }
 
-    let durationOptions = [10000, 15000, 20000, 30000, 60000]; // in milliseconds
+    let durationOptions = [10000, 15000, 20000, 30000, 60000, 120000]; // in milliseconds
     let currentDurationIndex = durationOptions.indexOf(totalTime); // match initial value
 
     function nextTime() {
@@ -240,7 +337,7 @@
     function skip() {
       clearTimeout(progressTimeout); // Stop existing timer
 
-      showRandomImage(); // Show a new image
+      showNextImage(); // Show a new image
       remainingTime = totalTime;
 
       if (slideshowRunning) {
@@ -261,6 +358,7 @@
       if (color == true) {
         document.body.style.backgroundColor = "black";
         miniTitle.style.color = "white";
+        finishedText.style.color = "white";
         // startBtn.style.backgroundColor = "#231d24";
         // // startBtn.style.color = "white";
         // endBtn.style.backgroundColor = "#231d24";
@@ -278,6 +376,7 @@
       } else {
         document.body.style.backgroundColor = "white";
         miniTitle.style.color = "black";
+        finishedText.style.color = "black";
         // startBtn.style.backgroundColor = "#231d24";
         // // startBtn.style.color = "white";
         // endBtn.style.backgroundColor = "#231d24";

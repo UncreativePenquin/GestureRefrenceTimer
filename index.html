@@ -107,6 +107,7 @@
       <button onclick="bgcolor()" id="bgBtn">Change BG Color</button>
       <button onclick="swapRepeats()" id="repeatsBtn">Repeats: ON</button>
       <button onclick="swapGrid()" id="gridBtn">Grid: OFF</button>
+      <button onclick="prePhotos()" id="picsBtn">Use Example Photos</button>
       <br>
       <h3 id="finishedText"></h3>
     </div>
@@ -120,7 +121,6 @@
   <br>
 
   <script>
-
     const grid = document.getElementById("grid-overlay");
     for (let i = 0; i < 324; i++) {  // 27 columns x 12 rows
       const cell = document.createElement("div");
@@ -170,6 +170,20 @@
 
     });
 
+    function prePhotos() {
+      let tmp = [
+        "ExampleImages/Step-1.jpg",
+        "ExampleImages/Step-2.jpg",
+        "ExampleImages/Step-3.jpg",
+        "ExampleImages/Step-4.jpg",
+      ]
+
+      images = tmp;
+      shuffleArray(images);
+      startBtn.disabled = false;
+      pauseBtn.disabled = true;
+    }
+
     function swapRepeats() {
       if (repeats) {
         repeatsBtn.textContent = "Repeat: OFF";
@@ -197,13 +211,19 @@
 
 
     function showNextImage() {
-      if (images.length === 0) {
-        return;
-      }
-      if (currentIndex != images.length) {
+      if (images.length === 0) return;
+
+      if (currentIndex < images.length) {
         const imageFile = images[currentIndex];
         currentIndex++;
-        imageElement.src = URL.createObjectURL(imageFile);
+
+        // Handle string paths vs File objects
+        if (typeof imageFile === "string") {
+          imageElement.src = imageFile;
+        } else {
+          imageElement.src = URL.createObjectURL(imageFile);
+        }
+
         resetProgressBar();
       } else if (repeats) {
         currentIndex = 0;
@@ -216,6 +236,7 @@
         finishedText.textContent = "Ran Out of New Images";
       }
     }
+
 
     function startSlideshow() {
       if (!imageElement.src || imageElement.src === window.location.href && !slideshowRunning) {

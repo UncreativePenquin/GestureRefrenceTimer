@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>Gesture Timer, upload a folder with refrence pictures (if you don't have any CubeBrush has some free packs</title>
+  <style>
+    body {
+      font-family: sans-serif;
+      text-align: center;
+    }
+
+    img {
+      display: block;
+      /* make it a block element */
+      margin: 20px auto;
+      /* auto left/right margins to center */
+      max-width: 95vw;
+      max-height: 75vh;
+      width: auto;
+      height: auto;
+      border: 2px solid #ccc;
+      object-fit: contain;
+    }
+
+
+    button {
+      padding: 10px 20px;
+      font-size: 16px;
+      margin: 10px;
+    }
+
+    #progress-container {
+      width: 80%;
+      height: 20px;
+      background-color: #eee;
+      border: 1px solid #ccc;
+      margin: 20px auto;
+      position: relative;
+      overflow: hidden;
+      border-radius: 10px;
+    }
+
+    #progress-bar {
+      width: 100%;
+      height: 100%;
+      background-color: #4caf50;
+      transition: width 0s linear;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h5 style="margin: 0%;">Random Image Viewer</h5>
+
+  <!-- Progress Bar -->
+  <div id="progress-container">
+    <div id="progress-bar"></div>
+  </div>
+  
+  
+  <!-- Folder Picker (hidden) -->
+  <input type="file" id="dirPicker" webkitdirectory hidden>
+  
+  <!-- Buttons -->
+   <div id="allButtons">
+  <button onclick="startSlideshow()" disabled id="startBtn">Start</button>
+  <button onclick="pauseSlideshow()" disabled id="pauseBtn">Pause</button>
+  <button onclick="endSlideshow()" disabled id="endBtn">End</button>
+  <button onclick="skip()" disabled id="skipBtn">Skip</button>
+  <div id="CFolder">
+    <button onclick="document.getElementById('dirPicker').click()">Choose Folder</button>
+    <button onclick="nextTime()" id="timeBtn">Duration: 30s</button>
+    <button onclick="bgcolor()" id="bgBtn">Change BG Color</button>
+  </div></div>
+  
+  <!-- Image -->
+  <div>
+    <img id="image" src="" alt="Random Image" style="display:none;" />
+  </div>
+  <br>
+  
+  <script>
+    let slideshowRunning = false;
+    let progressStartTime = null;
+    let progressTimeout = null;
+    let totalTime = 30000;
+    let remainingTime = totalTime; // in ms
+    
+    let color = true;
+    
+    
+    let images = [];
+    let intervalId = null;
+    const imageElement = document.getElementById("image");
+    const startBtn = document.getElementById("startBtn");
+    const pauseBtn = document.getElementById("pauseBtn");
+    const endBtn = document.getElementById("endBtn");
+    const progressBar = document.getElementById("progress-bar");
+    const dirPicker = document.getElementById("dirPicker");
+    const timeBtn = document.getElementById("timeBtn");
+    const skipBtn = document.getElementById("skipBtn");
+    const bgBtn = document.getElementById("bgBtn");
+
+    dirPicker.addEventListener("change", (e) => {
+      const files = Array.from(e.target.files).filter(file => file.type.startsWith("image/"));
+      if (files.length === 0) {
+        alert("No image files found in that folder!");
+        return;
+      }
+
+      images = files;
+      startBtn.disabled = false;
+      pauseBtn.disabled = true;
+
+    });
+
+    function showRandomImage() {
+      if (images.length === 0) return;
+      const randomIndex = Math.floor(Math.random() * images.length);
+      const imageFile = images[randomIndex];
+      imageElement.src = URL.createObjectURL(imageFile);
+      resetProgressBar();
+    }
+
+    function startSlideshow() {
+      if (!slideshowRunning && images.length > 0) {
+        if (!imageElement.src || imageElement.src === window.location.href) {
+          imageElement.style.display = "block";
+          showRandomImage(); // show only if no image yet
+        }
+
+
+        slideshowRunning = true;
+        startBtn.disabled = true;
+        pauseBtn.disabled = false;
+        endBtn.disabled = false;
+        skipBtn.disabled = false;
+
+        CFolder.disabled = true;
+        CFolder.style.display = "none";
+
+
+        startProgressBar(totalTime);
+        progressStartTime = Date.now();
+
+        progressTimeout = setTimeout(() => {
+          if (slideshowRunning) {
+            showAndScheduleNextImage(); // will reset bar & timer
+          }
+        }, remainingTime);
+      }
+    }
+
+
+    function pauseSlideshow() {
+      if (slideshowRunning) {
+        slideshowRunning = false;
+        startBtn.disabled = false;
+        pauseBtn.disabled = true;
+
+        clearTimeout(progressTimeout);
+
+        const elapsed = Date.now() - progressStartTime;
+        remainingTime -= elapsed;
+
+        pauseProgressBar();
+      }
+    }
+
+
+    function showAndScheduleNextImage() {
+      if (!slideshowRunning) return;
+
+      showRandomImage();
+      remainingTime = totalTime;
+      startProgressBar(remainingTime);
+      progressStartTime = Date.now();
+
+      progressTimeout = setTimeout(() => {
+        if (slideshowRunning) {
+          showAndScheduleNextImage();
+        }
+      }, remainingTime);
+    }
+
+
+
+    function endSlideshow() {
+      pauseSlideshow();
+      imageElement.style.display = "none";
+      progressBar.style.width = "0%";
+      startBtn.disabled = false;
+      pauseBtn.disabled = true;
+      endBtn.disabled = true;
+      remainingTime = totalTime;
+      CFolder.disabled = false;
+      CFolder.style.display = "block";
+      progressBar.style.width = "100%";
+      skipBtn.disabled = true;
+      imageElement.src = window.location.href
+    }
+
+    function startProgressBar(duration) {
+      progressBar.style.transition = "none";
+      progressBar.style.width = `${(remainingTime / totalTime) * 105}%`;
+      void progressBar.offsetWidth; // Force reflow
+      progressBar.style.transition = `width ${totalTime}ms linear`;
+      progressBar.style.width = "0%";
+    }
+
+
+    function resetProgressBar() {
+      startProgressBar();
+    }
+
+    function pauseProgressBar() {
+      const computedStyle = window.getComputedStyle(progressBar);
+      const currentWidth = computedStyle.width;
+      progressBar.style.transition = "none";
+      progressBar.style.width = currentWidth;
+    }
+
+    let durationOptions = [10000, 15000, 20000, 30000, 60000]; // in milliseconds
+    let currentDurationIndex = durationOptions.indexOf(totalTime); // match initial value
+
+    function nextTime() {
+      currentDurationIndex = (currentDurationIndex + 1) % durationOptions.length;
+      totalTime = durationOptions[currentDurationIndex];
+      remainingTime = totalTime;
+      updateTimeButton();
+    }
+
+    function updateTimeButton() {
+      const timeBtn = document.getElementById("timeBtn");
+      timeBtn.innerText = `Duration: ${totalTime / 1000}s`;
+    }
+
+    function skip() {
+      clearTimeout(progressTimeout); // Stop existing timer
+
+      showRandomImage(); // Show a new image
+      remainingTime = totalTime;
+
+      if (slideshowRunning) {
+        // Only start progress if running
+        startProgressBar(totalTime);
+        progressStartTime = Date.now();
+        progressTimeout = setTimeout(() => {
+          if (slideshowRunning) {
+            showAndScheduleNextImage();
+          }
+        }, remainingTime);
+      } else {
+        pauseProgressBar(); // Freeze progress if paused
+      }
+    }
+
+    function bgcolor() {
+      if (color == true) {
+        document.body.style.backgroundColor = "black";
+        // startBtn.style.backgroundColor = "#231d24";
+        // // startBtn.style.color = "white";
+        // endBtn.style.backgroundColor = "#231d24";
+        // // endBtn.style.color = "white";
+        // pauseBtn.style.backgroundColor = "#231d24";
+        // // pauseBtn.style.color = "white";
+        // CFolder.style.backgroundColor = "#231d24";
+        // // CFolder.style.color = "white";
+        // timeBtn.style.backgroundColor = "#231d24";
+        // // timeBtn.style.color = "white";
+        // bgBtn.style.backgroundColor = "#231d24";
+        // // bgBtn.style.color = "white";
+        // skipBtn.style.backgroundColor = "#231d24";
+        color = false;
+      } else {
+        document.body.style.backgroundColor = "white";
+        // startBtn.style.backgroundColor = "#231d24";
+        // // startBtn.style.color = "white";
+        // endBtn.style.backgroundColor = "#231d24";
+        // // endBtn.style.color = "white";
+        // pauseBtn.style.backgroundColor = "#231d24";
+        // // pauseBtn.style.color = "white";
+        // CFolder.style.backgroundColor = "#231d24";
+        // // CFolder.style.color = "white";
+        // timeBtn.style.backgroundColor = "#231d24";
+        // // timeBtn.style.color = "white";
+        // bgBtn.style.backgroundColor = "#231d24";
+        // // bgBtn.style.color = "white";
+        // skipBtn.style.backgroundColor = "#231d24";
+        color = true;
+      }
+    }
+
+  </script>
+
+</body>
+
+</html>

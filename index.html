@@ -2,7 +2,7 @@
 <html>
 
 <head>
-  <title>Gesture Timer, upload a folder with refrence pictures (if you don't have any CubeBrush has some free packs</title>
+  <title>Gesture Timer</title>
   <style>
     body {
       font-family: sans-serif;
@@ -51,7 +51,7 @@
 
 <body>
 
-  <h5 style="margin: 0%;">Random Image Viewer</h5>
+  <h5  id="miniTitle" style="margin: 0%;">Gesture Timer, upload a folder with refrence pictures (if you don't have any CubeBrush has some free packs)</h5>
 
   <!-- Progress Bar -->
   <div id="progress-container">
@@ -101,6 +101,7 @@
     const timeBtn = document.getElementById("timeBtn");
     const skipBtn = document.getElementById("skipBtn");
     const bgBtn = document.getElementById("bgBtn");
+    const miniTitle = document.getElementById("miniTitle");
 
     dirPicker.addEventListener("change", (e) => {
       const files = Array.from(e.target.files).filter(file => file.type.startsWith("image/"));
@@ -259,6 +260,7 @@
     function bgcolor() {
       if (color == true) {
         document.body.style.backgroundColor = "black";
+        miniTitle.style.color = "white";
         // startBtn.style.backgroundColor = "#231d24";
         // // startBtn.style.color = "white";
         // endBtn.style.backgroundColor = "#231d24";
@@ -275,6 +277,7 @@
         color = false;
       } else {
         document.body.style.backgroundColor = "white";
+        miniTitle.style.color = "black";
         // startBtn.style.backgroundColor = "#231d24";
         // // startBtn.style.color = "white";
         // endBtn.style.backgroundColor = "#231d24";

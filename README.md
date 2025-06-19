@@ -1,6 +1,6 @@
 # GestureRefrenceTimer
 Find online at https://gesturetimer.netlify.app
-do gesture drawing practice using your own files
+do gesture drawing practice using your own files ( no files are stored other than in the folder you have them in originally)
 
 if you don't have files they have some good free ones in CubeBrush
 
